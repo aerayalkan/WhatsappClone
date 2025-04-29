@@ -1,0 +1,17 @@
+# Node.js
+node_modules/
+
+# React build output
+build/
+
+# Python virtualenv
+backend/venv/
+__pycache__/
+*.py[cod]
+
+# Log ve ortam değişkenleri
+*.log
+.env
+
+# VSCode ayarları
+.vscode/

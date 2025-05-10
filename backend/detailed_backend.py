@@ -23,9 +23,9 @@ from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 from Crypto.Random import get_random_bytes
 
-# --- UYGULAMA & DB KONFİGÜRASYONU ---
+# --- UYGULAMA & DB KONFİGÜRASYÖNÜ ---
 app = Flask(__name__)
-CORS(app)  # Geliştirme aşamasında front-end'ten istek için
+CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///wala.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'patron_secret_key'
@@ -39,7 +39,7 @@ class User(db.Model):
     id             = db.Column(db.Integer, primary_key=True)
     username       = db.Column(db.String(80), unique=True, nullable=False)
     password       = db.Column(db.String(128), nullable=False)
-    rsa_public_key = db.Column(db.Text,    nullable=False)
+    rsa_public_key = db.Column(db.Text, nullable=False)
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -49,17 +49,17 @@ class Message(db.Model):
     id                = db.Column(db.Integer, primary_key=True)
     sender            = db.Column(db.String(80), nullable=False)
     recipient         = db.Column(db.String(80), nullable=False)
-    encrypted_message = db.Column(db.Text,    nullable=False)
-    signature         = db.Column(db.Text,    nullable=False)
+    encrypted_message = db.Column(db.Text, nullable=False)
+    signature         = db.Column(db.Text, nullable=False)
     timestamp         = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
         return f"<Message {self.sender}->{self.recipient}>"
 
-# In-memory: username -> raw DES key
+# In-memory depolama: kullanıcı adı -> DES anahtarı
 session_keys = {}
 
-# --- SUNUCU RSA ANAHTARLARI ---
+# --- SERVER RSA ANAHTARLARI ---
 def generate_server_rsa_keys():
     global server_rsa_key, server_rsa_public_key
     server_rsa_key        = RSA.generate(2048)
@@ -68,7 +68,7 @@ def generate_server_rsa_keys():
 
 generate_server_rsa_keys()
 
-# --- KRİPTO YARDIMCI FONKSİYONLAR ---
+# --- KRIPTO YARDIMCI FONKSIYONLAR ---
 def pad(data: bytes) -> bytes:
     pad_len = 8 - (len(data) % 8)
     return data + bytes([pad_len]) * pad_len
@@ -102,10 +102,10 @@ def verify_signature(public_pem: str, data: bytes, sig_b64: str) -> bool:
     except (ValueError, TypeError):
         return False
 
-# --- API ENDPOINT’LER ---
+# --- API ENDPOINT'LERI ---
 @app.route('/register', methods=['POST'])
 def register():
-    d = request.get_json()
+    d = request.get_json() or {}
     if not all(k in d for k in ('username','password','rsa_public_key')):
         return jsonify(status="error", message="Tüm alanlar gerekli."), 400
 
@@ -123,22 +123,21 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
-    d = request.get_json()
+    d = request.get_json() or {}
     user = User.query.filter_by(username=d.get('username')).first()
     if not user or user.password != d.get('password'):
         return jsonify(status="error", message="Geçersiz kimlik."), 401
 
-    return jsonify({
-        "status": "success",
-        "message": f"{user.username} giriş yaptı.",
-        "server_rsa_public_key": server_rsa_public_key,
-        # ÖNEMLİ! CLIENT'IN PUBLIC KEY'İNİ DE DÖNÜYORUZ
-        "client_rsa_public_key": user.rsa_public_key
-    }), 200
+    return jsonify(
+        status="success",
+        message=f"{user.username} giriş yaptı.",
+        server_rsa_public_key=server_rsa_public_key,
+        client_rsa_public_key=user.rsa_public_key
+    ), 200
 
 @app.route('/exchange_key', methods=['POST'])
 def exchange_key():
-    d = request.get_json()
+    d = request.get_json() or {}
     user = User.query.filter_by(username=d.get('username')).first()
     if not user:
         return jsonify(status="error", message="Kullanıcı bulunamadı."), 404
@@ -147,25 +146,36 @@ def exchange_key():
     des_key     = get_random_bytes(8)
     session_keys[user.username] = des_key
 
-    return jsonify({
-        "status": "success",
-        "encrypted_des_key": rsa_encrypt(client_pub, des_key)
-    }), 200
+    return jsonify(
+        status="success",
+        encrypted_des_key=rsa_encrypt(client_pub, des_key)
+    ), 200
 
 @app.route('/send_message', methods=['POST'])
 def send_message():
-    d = request.get_json()
+    d = request.get_json() or {}
+    # Tam payload loglama (errorsız)
+    logging.info("[send_message] Payload tamamı: %s", {
+        'sender': d.get('sender'),
+        'recipient': d.get('recipient'),
+        'encrypted_message': d.get('encrypted_message'),
+        'signature': d.get('signature')
+    })
+
     if not all(k in d for k in ('sender','recipient','encrypted_message','signature')):
         return jsonify(status="error", message="Tüm alanlar gerekli."), 400
 
-    sender = User.query.filter_by(username=d['sender']).first()
+    sender    = User.query.filter_by(username=d['sender']).first()
     recipient = User.query.filter_by(username=d['recipient']).first()
     if not sender or not recipient:
         return jsonify(status="error", message="Gönderen/Alıcı bulunamadı."), 404
 
-    if not verify_signature(sender.rsa_public_key,
-                            d['encrypted_message'].encode(),
-                            d['signature']):
+    if not verify_signature(
+        sender.rsa_public_key,
+        d['encrypted_message'].encode(),
+        d['signature']
+    ):
+        logging.warning("[send_message] İmza doğrulaması başarısız!")
         return jsonify(status="error", message="İmza doğrulaması başarısız."), 400
 
     msg = Message(
@@ -181,16 +191,16 @@ def send_message():
 @app.route('/get_messages', methods=['GET'])
 def get_messages():
     username = request.args.get('username')
-    user = User.query.filter_by(username=username).first()
+    user     = User.query.filter_by(username=username).first()
     if not user:
         return jsonify(status="error", message="Kullanıcı bulunamadı."), 404
 
     msgs = Message.query.filter_by(recipient=username).all()
-    out = [{
-        "sender": m.sender,
-        "encrypted_message": m.encrypted_message,
-        "signature": m.signature,
-        "timestamp": m.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    out  = [{
+        'sender':            m.sender,
+        'encrypted_message': m.encrypted_message,
+        'signature':         m.signature,
+        'timestamp':         m.timestamp.strftime("%Y-%m-%d %H:%M:%S")
     } for m in msgs]
 
     return jsonify(status="success", messages=out), 200
@@ -201,24 +211,34 @@ def admin_monitor():
     if token != "admin_token_example":
         return jsonify(status="error", message="Yetkisiz."), 401
 
-    return jsonify(status="success", data={
-        "registered_users": User.query.count(),
-        "total_messages": Message.query.count(),
-        "active_sessions": list(session_keys.keys())
-    }), 200
+    return jsonify(
+        status="success",
+        data   = {
+            'registered_users': User.query.count(),
+            'total_messages':   Message.query.count(),
+            'active_sessions':  list(session_keys.keys())
+        }
+    ), 200
 
-# --- PERİYODİK RSA GÜNCELLEME ---
+# --- PERIYODIC RSA UPDATE ---
 def periodic_rsa_update(interval=600):
     while True:
         time.sleep(interval)
         generate_server_rsa_keys()
 
-threading.Thread(target=periodic_rsa_update, args=(600,), daemon=True).start()
+threading.Thread(
+    target=periodic_rsa_update,
+    args=(600,),
+    daemon=True
+).start()
 
 # --- UYGULAMA BAŞLANGICI ---
 if __name__ == '__main__':
-    # Eksikse tablo oluştur
     with app.app_context():
         db.create_all()
 
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(
+        host='0.0.0.0',
+        port=5000,
+        debug=True
+    )

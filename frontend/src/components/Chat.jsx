@@ -27,8 +27,8 @@ export default function Chat() {
     setList(messages);
   };
 
-  useEffect(() => { 
-    if (sessionKey) fetchMsgs(); 
+  useEffect(() => {
+    if (sessionKey) fetchMsgs();
   }, [sessionKey]);
 
   useEffect(() => {
@@ -47,9 +47,23 @@ export default function Chat() {
     const signer = new JSEncrypt();
     signer.setPrivateKey(localStorage.getItem('privateKey'));
     const sig = signer.sign(enc, CryptoJS.SHA256, 'sha256');
-    await sendMessage(user, to, enc, sig);
-    setMsg('');
-    fetchMsgs();
+
+    // 🔐 Encryption işlemine dokunmuyoruz, sadece payload’u logluyoruz
+    console.log("🔐 Gönderilen payload:", {
+      sender: user,
+      recipient: to,
+      encrypted_message: enc,
+      signature: sig
+    });
+
+    try {
+      await sendMessage(user, to, enc, sig);
+      setMsg('');
+      fetchMsgs();
+    } catch (err) {
+      console.error("❌ send_message hatası:", err.response.data);
+      alert(`Mesaj gönderilemedi: ${err.response.data.message}`);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -116,8 +130,7 @@ export default function Chat() {
                     m.sender === user 
                       ? 'bg-green-100 rounded-tr-none' 
                       : 'bg-white rounded-tl-none'
-                  }`}
-                >
+                  }`}>
                   <div className="text-xs text-gray-500 mb-1">
                     {m.sender === user ? `Sen → ${m.recipient}` : m.sender}
                   </div>

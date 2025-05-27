@@ -6,18 +6,19 @@ import Login       from './components/Login';
 import KeyExchange from './components/KeyExchange';
 import Chat        from './components/Chat';
 import AdminMonitor from './components/AdminMonitor';
+import AdminLogin from './components/AdminLogin';
 
 // Placeholder components for missing routes
 const ForgotPassword = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-100">
     <div className="text-center">
-      <h1 className="text-2xl font-bold mb-4">Şifre Sıfırlama</h1>
-      <p className="mb-4">Bu özellik yakında kullanıma sunulacak.</p>
+      <h1 className="text-2xl font-bold mb-4">Password Reset</h1>
+      <p className="mb-4">This feature will be available soon.</p>
       <button 
         onClick={() => window.history.back()} 
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
       >
-        Geri Dön
+        Go Back
       </button>
     </div>
   </div>
@@ -26,13 +27,13 @@ const ForgotPassword = () => (
 const Terms = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-100">
     <div className="max-w-2xl p-8 bg-white rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-4">Kullanım Koşulları</h1>
-      <p className="mb-4">WALA güvenli mesajlaşma uygulaması kullanım koşulları...</p>
+      <h1 className="text-2xl font-bold mb-4">Terms of Service</h1>
+      <p className="mb-4">WALA secure messaging application terms of service...</p>
       <button 
         onClick={() => window.history.back()} 
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
       >
-        Geri Dön
+        Go Back
       </button>
     </div>
   </div>
@@ -41,13 +42,13 @@ const Terms = () => (
 const Privacy = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-100">
     <div className="max-w-2xl p-8 bg-white rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-4">Gizlilik Politikası</h1>
-      <p className="mb-4">WALA uygulaması gizlilik politikası ve veri koruma ilkeleri...</p>
+      <h1 className="text-2xl font-bold mb-4">Privacy Policy</h1>
+      <p className="mb-4">WALA application privacy policy and data protection principles...</p>
       <button 
         onClick={() => window.history.back()} 
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
       >
-        Geri Dön
+        Go Back
       </button>
     </div>
   </div>
@@ -62,6 +63,7 @@ export default function App(){
         <Route path="/login"         element={<Login/>} />
         <Route path="/exchange"      element={<KeyExchange/>} />
         <Route path="/chat"          element={<Chat/>} />
+        <Route path="/admin-login"   element={<AdminLogin/>} />
         <Route path="/admin"         element={<AdminMonitor/>} />
         <Route path="/forgot-password" element={<ForgotPassword/>} />
         <Route path="/terms"         element={<Terms/>} />

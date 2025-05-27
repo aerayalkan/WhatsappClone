@@ -32,13 +32,13 @@ export default function Chat() {
     
     // Force değilse ve 5 saniyeden az geçtiyse, fetch yapma
     if (!force && timeSinceLastFetch < 5000) {
-      console.log('Rate limit: Çok erken fetch denemesi, atlanıyor');
+      console.log('Rate limit: Too early fetch attempt, skipping');
       return;
     }
     
     // Zaten yükleniyor mu kontrol et
     if (isLoading) {
-      console.log('Zaten yükleniyor, atlanıyor');
+      console.log('Already loading, skipping');
       return;
     }
     
@@ -81,16 +81,16 @@ export default function Chat() {
          setLastUpdate(new Date());
        }
     } catch (error) {
-      console.error('Mesajlar alınırken hata:', error);
+      console.error('Error fetching messages:', error);
       // Network error durumunda daha uzun bekle
       if (error.code === 'ERR_NETWORK') {
-        console.log('Network error - bir sonraki fetch 10 saniye sonra');
+        console.log('Network error - next fetch in 10 seconds');
         lastFetchTime.current = now + 8000; // 10 saniye daha beklet
       }
       
       // 404 hatası durumunda boş array set et
       if (error.response?.status === 404) {
-        console.log('Kullanıcı bulunamadı, boş mesaj listesi gösteriliyor');
+        console.log('User not found, showing empty message list');
         setList([]);
       } else {
         // Diğer hatalar için de boş array
@@ -153,8 +153,8 @@ export default function Chat() {
       setShouldScrollToBottom(true);
       setTimeout(() => fetchMsgs(true), 1000); // Force=true ile 1 saniye sonra
     } catch (err) {
-      console.error("❌ send_message hatası:", err.response?.data || err);
-      alert(`Mesaj gönderilemedi: ${err.response?.data?.message || err.message}`);
+      console.error("❌ send_message error:", err.response?.data || err);
+      alert(`Message could not be sent: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -186,12 +186,12 @@ export default function Chat() {
           <MessageSquare className="h-5 w-5" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-medium">Mesajlaşma Uygulaması</h1>
+          <h1 className="text-xl font-medium">Messaging Application</h1>
           <p className="text-xs">
-            Güvenli iletişim platformu - {user}
+            Secure communication platform - {user}
             {lastUpdate && (
               <span className="ml-2 text-green-200">
-                • Son güncelleme: {lastUpdate.toLocaleTimeString()}
+                • Last update: {lastUpdate.toLocaleTimeString()}
               </span>
             )}
           </p>
@@ -218,7 +218,7 @@ export default function Chat() {
             </div>
             <input
               type="text"
-              placeholder="Alıcı kullanıcı adı"
+              placeholder="Recipient username"
               value={to}
               onChange={(e) => setTo(e.target.value)}
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
@@ -232,10 +232,10 @@ export default function Chat() {
             <div className="flex items-center justify-center h-full text-gray-500">
               <div className="text-center">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Henüz mesaj yok. Konuşmaya başlayın!</p>
+                <p>No messages yet. Start the conversation!</p>
                 <p className="text-sm mt-2">
-                  Mesajlar manuel olarak yenilenir (↻ butonu)
-                  {isLoading && <span className="animate-pulse"> • Yükleniyor...</span>}
+                  Messages refresh manually (↻ button)
+                  {isLoading && <span className="animate-pulse"> • Loading...</span>}
                 </p>
               </div>
             </div>
@@ -252,7 +252,7 @@ export default function Chat() {
                       : 'bg-white rounded-tl-none'
                   }`}>
                   <div className="text-xs text-gray-500 mb-1">
-                    {m.sender === user ? `Sen → ${m.recipient}` : `${m.sender} → Sen`}
+                    {m.sender === user ? `You → ${m.recipient}` : `${m.sender} → You`}
                   </div>
                   <p className="break-words">{m.text}</p>
                   <span className="text-xs text-gray-500 text-right block mt-1">
@@ -271,7 +271,7 @@ export default function Chat() {
             <div className="flex-1 bg-white rounded-full border border-gray-300 overflow-hidden flex items-center">
               <textarea
                 rows="1"
-                placeholder="Mesaj yazın..."
+                placeholder="Write a message..."
                 value={msg}
                 onChange={(e) => setMsg(e.target.value)}
                 onKeyPress={handleKeyPress}

@@ -26,7 +26,7 @@ export default function Register() {
 
   const handleSubmit = async () => {
     if (!user || !pass || !pubPEM) {
-      return alert('Lütfen önce anahtar oluşturun ve tüm alanları doldurun.');
+      return alert('Please generate keys first and fill in all fields.');
     }
     try {
       // Backend'e kayıt
@@ -37,13 +37,13 @@ export default function Register() {
       // Login'e yönlendir
       navigate('/login');
     } catch (error) {
-      alert('Kayıt sırasında bir hata oluştu: ' + (error.response?.data?.message || error.message));
+      alert('An error occurred during registration: ' + (error.response?.data?.message || error.message));
     }
   };
 
   const nextStep = () => {
     if (step === 2 && (!user || !pass)) {
-      return alert('Lütfen kullanıcı adı ve şifre alanlarını doldurun.');
+      return alert('Please fill in the username and password fields.');
     }
     setStep(step + 1);
   };
@@ -56,8 +56,8 @@ export default function Register() {
           <div className="w-16 h-16 flex items-center justify-center bg-green-500 rounded-full mb-4">
             <Smartphone className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Mesajlaşma Uygulaması</h1>
-          <p className="text-gray-500 text-center mt-2">Güvenli iletişim için hesap oluşturun</p>
+          <h1 className="text-2xl font-bold text-gray-800">Messaging Application</h1>
+          <p className="text-gray-500 text-center mt-2">Create an account for secure communication</p>
         </div>
 
         {/* Step indicator */}
@@ -79,14 +79,14 @@ export default function Register() {
         {step === 1 && (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-700">Güvenlik Anahtarı Oluşturun</h2>
-              <p className="text-gray-500 text-sm mt-2">Mesajlarınızın güvenliği için RSA anahtar çifti gereklidir</p>
+              <h2 className="text-xl font-semibold text-gray-700">Create Security Key</h2>
+              <p className="text-gray-500 text-sm mt-2">RSA key pair is required for the security of your messages</p>
             </div>
             
             <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
               <Shield className="w-12 h-12 text-blue-500 mb-4" />
               <p className="text-gray-600 text-center mb-4">
-                İletişiminizi korumak için güvenli bir anahtar oluşturun
+                Create a secure key to protect your communication
               </p>
               <button
                 onClick={generateKeys}
@@ -99,17 +99,17 @@ export default function Register() {
               >
                 {keyGenerated ? (
                   <span className="flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 mr-2" /> Anahtar Oluşturuldu
+                    <CheckCircle className="w-5 h-5 mr-2" /> Key Generated
                   </span>
                 ) : (
-                  'RSA Anahtar Çifti Oluştur'
+                  'Generate RSA Key Pair'
                 )}
               </button>
             </div>
 
             {pubPEM && (
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Oluşturulan Genel Anahtar</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Generated Public Key</label>
                 <textarea
                   readOnly
                   rows={3}
@@ -125,7 +125,7 @@ export default function Register() {
                   onClick={nextStep}
                   className="flex items-center justify-center py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                 >
-                  İleri <ArrowRight className="ml-2 w-4 h-4" />
+                  Next <ArrowRight className="ml-2 w-4 h-4" />
                 </button>
               </div>
             )}
@@ -135,20 +135,20 @@ export default function Register() {
         {step === 2 && (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-700">Hesap Bilgileriniz</h2>
-              <p className="text-gray-500 text-sm mt-2">Hesabınıza erişmek için gereken bilgileri girin</p>
+              <h2 className="text-xl font-semibold text-gray-700">Account Information</h2>
+              <p className="text-gray-500 text-sm mt-2">Enter the information required to access your account</p>
             </div>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Adı</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
                     type="text"
-                    placeholder="Kullanıcı adınızı girin"
+                    placeholder="Enter your username"
                     value={user}
                     onChange={e => setUser(e.target.value)}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
@@ -157,14 +157,14 @@ export default function Register() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
                     type="password"
-                    placeholder="Güvenli bir şifre oluşturun"
+                    placeholder="Create a secure password"
                     value={pass}
                     onChange={e => setPass(e.target.value)}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
@@ -179,7 +179,7 @@ export default function Register() {
                 className="flex items-center justify-center py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                 disabled={!user || !pass}
               >
-                İleri <ArrowRight className="ml-2 w-4 h-4" />
+                Next <ArrowRight className="ml-2 w-4 h-4" />
               </button>
             </div>
           </div>
@@ -188,24 +188,24 @@ export default function Register() {
         {step === 3 && (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-700">Kayıt İşlemini Tamamlayın</h2>
-              <p className="text-gray-500 text-sm mt-2">Tüm bilgilerinizi kontrol edin ve hesabınızı oluşturun</p>
+              <h2 className="text-xl font-semibold text-gray-700">Complete Registration</h2>
+              <p className="text-gray-500 text-sm mt-2">Review all your information and create your account</p>
             </div>
             
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h3 className="font-medium text-gray-700 mb-3">Hesap Bilgileriniz</h3>
+              <h3 className="font-medium text-gray-700 mb-3">Account Information</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Kullanıcı Adı:</span>
+                  <span className="text-gray-500">Username:</span>
                   <span className="font-medium">{user}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Şifre:</span>
+                  <span className="text-gray-500">Password:</span>
                   <span className="font-medium">••••••••</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Güvenlik Anahtarı:</span>
-                  <span className="font-medium text-green-500">Oluşturuldu</span>
+                  <span className="text-gray-500">Security Key:</span>
+                  <span className="font-medium text-green-500">Generated</span>
                 </div>
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function Register() {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-blue-700">
-                    Mesajlarınız uçtan uca şifreleme ile korunacaktır. Gizliliğiniz bizim için önemlidir.
+                    Your messages will be protected with end-to-end encryption. Your privacy is important to us.
                   </p>
                 </div>
               </div>
@@ -227,12 +227,12 @@ export default function Register() {
               onClick={handleSubmit}
               className="w-full py-3 px-4 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition flex items-center justify-center"
             >
-              Hesabı Oluştur <CheckCircle className="ml-2 w-5 h-5" />
+              Create Account <CheckCircle className="ml-2 w-5 h-5" />
             </button>
             
             <p className="text-center text-sm text-gray-500 mt-4">
-              Kayıt olarak, <button onClick={() => navigate('/terms')} className="text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">kullanım koşullarını</button> ve 
-              <button onClick={() => navigate('/privacy')} className="text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0"> gizlilik politikasını</button> kabul etmiş olursunuz.
+              By registering, you agree to our <button onClick={() => navigate('/terms')} className="text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">terms of service</button> and 
+              <button onClick={() => navigate('/privacy')} className="text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">privacy policy</button>.
             </p>
           </div>
         )}

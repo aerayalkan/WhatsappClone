@@ -17,9 +17,7 @@ export default function Chat() {
   const [list, setList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
-  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false);
   const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
 
   // Gelen mesajları DES çöz, göster - useCallback ile infinite loop'u önle
   const fetchMsgs = useCallback(async () => {
@@ -34,25 +32,8 @@ export default function Chat() {
         }).toString(CryptoJS.enc.Utf8);
         return { sender: m.sender, recipient: m.recipient, text: dec, timestamp: m.timestamp };
       });
-      
-      // Sadece yeni mesaj varsa ve kullanıcı en alttaysa scroll yap
-      const hasNewMessages = messages.length > list.length;
       setList(messages);
       setLastUpdate(new Date());
-      
-      if (hasNewMessages) {
-        // Kullanıcı en altta mı kontrol et
-        const container = messagesContainerRef.current;
-        if (container) {
-          const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
-          if (isAtBottom) {
-            setShouldScrollToBottom(true);
-          }
-        } else {
-          // İlk yüklemede her zaman scroll yap
-          setShouldScrollToBottom(true);
-        }
-      }
     } catch (error) {
       console.error('Mesajlar alınırken hata:', error);
       // 404 hatası durumunda boş array set et
@@ -72,7 +53,6 @@ export default function Chat() {
   useEffect(() => {
     if (!sessionKey || !user) return;
     
-    setShouldScrollToBottom(true); // İlk yüklemede scroll yap
     fetchMsgs(); // İlk yükleme
     
     // Sadece sayfa görünürken çalışan interval
@@ -86,13 +66,11 @@ export default function Chat() {
     return () => clearInterval(interval);
   }, [sessionKey, user, fetchMsgs]);
 
-  // Sadece shouldScrollToBottom true olduğunda scroll yap
   useEffect(() => {
-    if (shouldScrollToBottom && messagesEndRef.current) {
+    if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-      setShouldScrollToBottom(false);
     }
-  }, [shouldScrollToBottom]);
+  }, [list]);
 
   // Mesajı DES+RSA imza ile gönder
   const send = async () => {
@@ -116,8 +94,7 @@ export default function Chat() {
     try {
       await sendMessage(user, to, enc, sig);
       setMsg('');
-      // Mesaj gönderildikten sonra scroll yap ve yenile
-      setShouldScrollToBottom(true);
+      // Mesaj gönderildikten sonra kısa gecikmeyle yenile
       setTimeout(() => fetchMsgs(), 500);
     } catch (err) {
       console.error("❌ send_message hatası:", err.response?.data || err);
@@ -194,7 +171,7 @@ export default function Chat() {
         </div>
         
         {/* Messages */}
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-100 space-y-2">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-100 space-y-2">
           {list.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500">
               <div className="text-center">

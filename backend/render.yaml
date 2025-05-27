@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: wala-backend
+    runtime: python3
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT detailed_backend:app"
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_ENV
+        value: production
+    autoDeploy: false 

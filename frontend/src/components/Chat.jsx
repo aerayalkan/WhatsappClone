@@ -16,6 +16,7 @@ export default function Chat() {
   const [msg, setMsg] = useState('');
   const [list, setList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
   const messagesEndRef = useRef(null);
 
   // Gelen mesajları DES çöz, göster - useCallback ile infinite loop'u önle
@@ -32,19 +33,36 @@ export default function Chat() {
         return { sender: m.sender, recipient: m.recipient, text: dec, timestamp: m.timestamp };
       });
       setList(messages);
+      setLastUpdate(new Date());
     } catch (error) {
       console.error('Mesajlar alınırken hata:', error);
+      // 404 hatası durumunda boş array set et
+      if (error.response?.status === 404) {
+        console.log('Kullanıcı bulunamadı, boş mesaj listesi gösteriliyor');
+        setList([]);
+      } else {
+        // Diğer hatalar için de boş array
+        setList([]);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [sessionKey, user, isLoading]);
+  }, [sessionKey, user]); // isLoading'i dependency'den çıkardık
 
-  // SADECE İLK YÜKLEMEDE mesajları getir - infinite loop yok!
+  // İlk yükleme ve otomatik yenileme
   useEffect(() => {
     if (sessionKey && user) {
       fetchMsgs();
+      
+      // Her 5 saniyede bir mesajları yenile
+      const interval = setInterval(() => {
+        fetchMsgs();
+      }, 5000);
+      
+      // Cleanup interval on unmount
+      return () => clearInterval(interval);
     }
-  }, []); // Boş dependency array - sadece mount'ta çalışır
+  }, [sessionKey, user, fetchMsgs]); // fetchMsgs'i dependency'e ekledik
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -74,8 +92,8 @@ export default function Chat() {
     try {
       await sendMessage(user, to, enc, sig);
       setMsg('');
-      // Mesaj gönderildikten sonra kısa bir süre bekleyip mesajları yenile
-      setTimeout(() => fetchMsgs(), 1000);
+      // Mesaj gönderildikten hemen sonra mesajları yenile
+      fetchMsgs();
     } catch (err) {
       console.error("❌ send_message hatası:", err.response?.data || err);
       alert(`Mesaj gönderilemedi: ${err.response?.data?.message || err.message}`);
@@ -109,7 +127,14 @@ export default function Chat() {
         </div>
         <div className="flex-1">
           <h1 className="text-xl font-medium">Mesajlaşma Uygulaması</h1>
-          <p className="text-xs">Güvenli iletişim platformu - {user}</p>
+          <p className="text-xs">
+            Güvenli iletişim platformu - {user}
+            {lastUpdate && (
+              <span className="ml-2 text-green-200">
+                • Son güncelleme: {lastUpdate.toLocaleTimeString()}
+              </span>
+            )}
+          </p>
         </div>
         <button 
           onClick={handleRefresh}
@@ -148,7 +173,10 @@ export default function Chat() {
               <div className="text-center">
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Henüz mesaj yok. Konuşmaya başlayın!</p>
-                <p className="text-sm mt-2">Yeni mesajlar için ↻ butonuna basın</p>
+                <p className="text-sm mt-2">
+                  Mesajlar otomatik olarak her 5 saniyede güncellenir
+                  {isLoading && <span className="animate-pulse"> • Yükleniyor...</span>}
+                </p>
               </div>
             </div>
           ) : (

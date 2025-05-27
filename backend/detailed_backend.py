@@ -10,6 +10,7 @@ import base64
 import time
 import threading
 import logging
+import hashlib
 from datetime import datetime
 
 from flask import Flask, request, jsonify
@@ -69,6 +70,13 @@ def generate_server_rsa_keys():
 generate_server_rsa_keys()
 
 # --- KRIPTO YARDIMCI FONKSIYONLAR ---
+def hash_password(password: str) -> str:
+    """Şifreyi SHA256 ile hashle"""
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Şifreyi doğrula"""
+    return hash_password(password) == hashed
 def pad(data: bytes) -> bytes:
     pad_len = 8 - (len(data) % 8)
     return data + bytes([pad_len]) * pad_len
@@ -114,7 +122,7 @@ def register():
 
     user = User(
         username       = d['username'],
-        password       = d['password'],
+        password       = hash_password(d['password']),
         rsa_public_key = d['rsa_public_key']
     )
     db.session.add(user)
@@ -125,7 +133,7 @@ def register():
 def login():
     d = request.get_json() or {}
     user = User.query.filter_by(username=d.get('username')).first()
-    if not user or user.password != d.get('password'):
+    if not user or not verify_password(d.get('password', ''), user.password):
         return jsonify(status="error", message="Geçersiz kimlik."), 401
 
     return jsonify(
@@ -195,13 +203,21 @@ def get_messages():
     if not user:
         return jsonify(status="error", message="Kullanıcı bulunamadı."), 404
 
-    msgs = Message.query.filter_by(recipient=username).all()
-    out  = [{
+    # Hem gönderdiği hem aldığı mesajları al
+    sent_msgs = Message.query.filter_by(sender=username).all()
+    received_msgs = Message.query.filter_by(recipient=username).all()
+    
+    all_msgs = sent_msgs + received_msgs
+    # Timestamp'e göre sırala
+    all_msgs.sort(key=lambda x: x.timestamp)
+    
+    out = [{
         'sender':            m.sender,
+        'recipient':         m.recipient,
         'encrypted_message': m.encrypted_message,
         'signature':         m.signature,
         'timestamp':         m.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-    } for m in msgs]
+    } for m in all_msgs]
 
     return jsonify(status="success", messages=out), 200
 

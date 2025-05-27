@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getMessages, sendMessage } from '../api';
 import CryptoJS from 'crypto-js';
 import { JSEncrypt } from 'jsencrypt';
-import { Send, Menu, User, MessageSquare } from 'lucide-react';
+import { Send, Menu, User, MessageSquare, RefreshCw } from 'lucide-react';
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -15,11 +15,14 @@ export default function Chat() {
   const [to, setTo] = useState('');
   const [msg, setMsg] = useState('');
   const [list, setList] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Gelen mesajları DES çöz, göster - useCallback ile infinite loop'u önle
   const fetchMsgs = useCallback(async () => {
-    if (!sessionKey || !user) return;
+    if (!sessionKey || !user || isLoading) return;
+    
+    setIsLoading(true);
     try {
       const res = await getMessages(user);
       const messages = res.data.messages.map(m => {
@@ -31,20 +34,17 @@ export default function Chat() {
       setList(messages);
     } catch (error) {
       console.error('Mesajlar alınırken hata:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [sessionKey, user]);
+  }, [sessionKey, user, isLoading]);
 
-  // İlk yüklemede mesajları getir - dependency array'i düzelt
+  // SADECE İLK YÜKLEMEDE mesajları getir - infinite loop yok!
   useEffect(() => {
-    fetchMsgs();
-    
-    // Her 3 saniyede bir mesajları kontrol et (real-time effect için)
-    const interval = setInterval(() => {
+    if (sessionKey && user) {
       fetchMsgs();
-    }, 3000);
-    
-    return () => clearInterval(interval);
-  }, [fetchMsgs]);
+    }
+  }, []); // Boş dependency array - sadece mount'ta çalışır
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -75,7 +75,7 @@ export default function Chat() {
       await sendMessage(user, to, enc, sig);
       setMsg('');
       // Mesaj gönderildikten sonra kısa bir süre bekleyip mesajları yenile
-      setTimeout(() => fetchMsgs(), 500);
+      setTimeout(() => fetchMsgs(), 1000);
     } catch (err) {
       console.error("❌ send_message hatası:", err.response?.data || err);
       alert(`Mesaj gönderilemedi: ${err.response?.data?.message || err.message}`);
@@ -95,6 +95,11 @@ export default function Chat() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Manuel refresh butonu
+  const handleRefresh = () => {
+    fetchMsgs();
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       {/* Header */}
@@ -104,8 +109,15 @@ export default function Chat() {
         </div>
         <div className="flex-1">
           <h1 className="text-xl font-medium">Mesajlaşma Uygulaması</h1>
-          <p className="text-xs">Güvenli iletişim platformu</p>
+          <p className="text-xs">Güvenli iletişim platformu - {user}</p>
         </div>
+        <button 
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="p-2 rounded-full hover:bg-green-600 mr-2"
+        >
+          <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+        </button>
         <button className="p-1 rounded-full hover:bg-green-600">
           <Menu className="h-5 w-5" />
         </button>
@@ -133,7 +145,11 @@ export default function Chat() {
         <div className="flex-1 overflow-y-auto p-4 bg-gray-100 space-y-2">
           {list.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500">
-              Henüz mesaj yok. Konuşmaya başlayın!
+              <div className="text-center">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Henüz mesaj yok. Konuşmaya başlayın!</p>
+                <p className="text-sm mt-2">Yeni mesajlar için ↻ butonuna basın</p>
+              </div>
             </div>
           ) : (
             list.map((m, i) => (
@@ -148,7 +164,7 @@ export default function Chat() {
                       : 'bg-white rounded-tl-none'
                   }`}>
                   <div className="text-xs text-gray-500 mb-1">
-                    {m.sender === user ? `Sen → ${m.recipient}` : m.sender}
+                    {m.sender === user ? `Sen → ${m.recipient}` : `${m.sender} → Sen`}
                   </div>
                   <p className="break-words">{m.text}</p>
                   <span className="text-xs text-gray-500 text-right block mt-1">

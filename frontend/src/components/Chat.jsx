@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMessages, sendMessage } from '../api';
 import CryptoJS from 'crypto-js';
@@ -17,21 +17,34 @@ export default function Chat() {
   const [list, setList] = useState([]);
   const messagesEndRef = useRef(null);
 
-  // Gelen mesajları DES çöz, göster
-  const fetchMsgs = async () => {
-    const res = await getMessages(user);
-    const messages = res.data.messages.map(m => {
-      const dec = CryptoJS.DES.decrypt(m.encrypted_message, sessionKey, {
-        mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7
-      }).toString(CryptoJS.enc.Utf8);
-      return { sender: m.sender, recipient: m.recipient, text: dec, timestamp: m.timestamp };
-    });
-    setList(messages);
-  };
+  // Gelen mesajları DES çöz, göster - useCallback ile infinite loop'u önle
+  const fetchMsgs = useCallback(async () => {
+    if (!sessionKey || !user) return;
+    try {
+      const res = await getMessages(user);
+      const messages = res.data.messages.map(m => {
+        const dec = CryptoJS.DES.decrypt(m.encrypted_message, sessionKey, {
+          mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7
+        }).toString(CryptoJS.enc.Utf8);
+        return { sender: m.sender, recipient: m.recipient, text: dec, timestamp: m.timestamp };
+      });
+      setList(messages);
+    } catch (error) {
+      console.error('Mesajlar alınırken hata:', error);
+    }
+  }, [sessionKey, user]);
 
+  // İlk yüklemede mesajları getir - dependency array'i düzelt
   useEffect(() => {
-    if (sessionKey) fetchMsgs();
-  }, [sessionKey]);
+    fetchMsgs();
+    
+    // Her 3 saniyede bir mesajları kontrol et (real-time effect için)
+    const interval = setInterval(() => {
+      fetchMsgs();
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [fetchMsgs]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -61,10 +74,11 @@ export default function Chat() {
     try {
       await sendMessage(user, to, enc, sig);
       setMsg('');
-      fetchMsgs();
+      // Mesaj gönderildikten sonra kısa bir süre bekleyip mesajları yenile
+      setTimeout(() => fetchMsgs(), 500);
     } catch (err) {
-      console.error("❌ send_message hatası:", err.response.data);
-      alert(`Mesaj gönderilemedi: ${err.response.data.message}`);
+      console.error("❌ send_message hatası:", err.response?.data || err);
+      alert(`Mesaj gönderilemedi: ${err.response?.data?.message || err.message}`);
     }
   };
 

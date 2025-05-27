@@ -1,9 +1,11 @@
 import { JSEncrypt } from 'jsencrypt'; // RSA anahtar çifti oluşturmak için
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { register } from '../api'; // API'den register fonksiyonunu import et
 import { Smartphone, Lock, User, Shield, CheckCircle, ArrowRight } from 'lucide-react';
 
 export default function Register() {
+  const navigate = useNavigate();
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
   const [pubPEM, setPubPEM] = useState('');
@@ -26,13 +28,17 @@ export default function Register() {
     if (!user || !pass || !pubPEM) {
       return alert('Lütfen önce anahtar oluşturun ve tüm alanları doldurun.');
     }
-    // Backend'e kayıt
-    await register(user, pass, pubPEM);
-    // LocalStorage'a sakla
-    localStorage.setItem('user', user);
-    localStorage.setItem('clientPublicKey', pubPEM);
-    // Login'e yönlendir
-    window.location = '/login';
+    try {
+      // Backend'e kayıt
+      await register(user, pass, pubPEM);
+      // LocalStorage'a sakla
+      localStorage.setItem('user', user);
+      localStorage.setItem('clientPublicKey', pubPEM);
+      // Login'e yönlendir
+      navigate('/login');
+    } catch (error) {
+      alert('Kayıt sırasında bir hata oluştu: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   const nextStep = () => {
@@ -225,8 +231,8 @@ export default function Register() {
             </button>
             
             <p className="text-center text-sm text-gray-500 mt-4">
-              Kayıt olarak, <a href="#" className="text-blue-500 hover:underline">kullanım koşullarını</a> ve 
-              <a href="#" className="text-blue-500 hover:underline"> gizlilik politikasını</a> kabul etmiş olursunuz.
+              Kayıt olarak, <button onClick={() => navigate('/terms')} className="text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">kullanım koşullarını</button> ve 
+              <button onClick={() => navigate('/privacy')} className="text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0"> gizlilik politikasını</button> kabul etmiş olursunuz.
             </p>
           </div>
         )}

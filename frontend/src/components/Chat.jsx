@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMessages, sendMessage } from '../api';
 import CryptoJS from 'crypto-js';
 import { JSEncrypt } from 'jsencrypt';
 import { Send, Menu, User, MessageSquare } from 'lucide-react';
 
 export default function Chat() {
+  const navigate = useNavigate();
   const user = localStorage.getItem('user');
   const rawB64 = localStorage.getItem('sessionKeyRaw');
-  useEffect(() => { if (!rawB64) window.location = '/exchange'; }, [rawB64]);
+  useEffect(() => { if (!rawB64) navigate('/exchange'); }, [rawB64, navigate]);
   const sessionKey = rawB64 && CryptoJS.enc.Base64.parse(rawB64);
 
   const [to, setTo] = useState('');
@@ -48,7 +50,7 @@ export default function Chat() {
     signer.setPrivateKey(localStorage.getItem('privateKey'));
     const sig = signer.sign(enc, CryptoJS.SHA256, 'sha256');
 
-    // 🔐 Encryption işlemine dokunmuyoruz, sadece payload’u logluyoruz
+    // 🔐 Encryption işlemine dokunmuyoruz, sadece payload'u logluyoruz
     console.log("🔐 Gönderilen payload:", {
       sender: user,
       recipient: to,

@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { login } from '../api';
 import { Smartphone, Lock, User } from 'lucide-react';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [user, setUser] = useState('');
   const [pw, setPw] = useState('');
 
   const submit = async () => {
-    const res = await login(user, pw);
-    // Backend'ten public key'leri alıp sakla
-    localStorage.setItem('user', user);
-    localStorage.setItem('serverPublicKey', res.data.server_rsa_public_key);
-    localStorage.setItem('clientPublicKey', res.data.client_rsa_public_key);
-    window.location = '/exchange';
+    try {
+      const res = await login(user, pw);
+      // Backend'ten public key'leri alıp sakla
+      localStorage.setItem('user', user);
+      localStorage.setItem('serverPublicKey', res.data.server_rsa_public_key);
+      localStorage.setItem('clientPublicKey', res.data.client_rsa_public_key);
+      navigate('/exchange');
+    } catch (error) {
+      alert('Giriş sırasında bir hata oluştu: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   return (
@@ -75,13 +81,13 @@ export default function Login() {
           </button>
           
           <div className="flex items-center justify-between mt-4">
-            <button onClick={() => window.location = '/forgot-password'} className="text-sm text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">Şifrenizi mi unuttunuz?</button>
-            <button onClick={() => window.location = '/register'} className="text-sm text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">Hesap oluştur</button>
+            <button onClick={() => navigate('/forgot-password')} className="text-sm text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">Şifrenizi mi unuttunuz?</button>
+            <button onClick={() => navigate('/register')} className="text-sm text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">Hesap oluştur</button>
           </div>
           
           <p className="text-center text-sm text-gray-500 mt-4">
-            Giriş yaparak, <button onClick={() => window.location = '/terms'} className="text-sm text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">kullanım koşullarını</button> ve 
-            <button onClick={() => window.location = '/privacy'} className="text-sm text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0"> gizlilik politikasını</button> kabul etmiş olursunuz.
+            Giriş yaparak, <button onClick={() => navigate('/terms')} className="text-sm text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0">kullanım koşullarını</button> ve 
+            <button onClick={() => navigate('/privacy')} className="text-sm text-blue-500 hover:underline bg-transparent border-none cursor-pointer p-0"> gizlilik politikasını</button> kabul etmiş olursunuz.
           </p>
         </div>
       </div>

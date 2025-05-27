@@ -1,32 +1,42 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { exchangeKey } from '../api';
 import { JSEncrypt } from 'jsencrypt';
 import { Smartphone, Key, Lock, Shield, ArrowRight } from 'lucide-react';
 
 export default function KeyExchange() {
+  const navigate = useNavigate();
   const user = localStorage.getItem('user');
   const [step, setStep] = useState(0);
   const [encDesKey, setEnc] = useState('');
 
   const doExchange = async () => {
-    // mutlaka storage'da clientPublicKey var
-    const pub = localStorage.getItem('clientPublicKey');
-    console.log("POST /exchange_key", { username: user, client_rsa_public_key: pub });
-    const res = await exchangeKey(user, pub);
-    setEnc(res.data.encrypted_des_key);
-    setStep(1);
+    try {
+      // mutlaka storage'da clientPublicKey var
+      const pub = localStorage.getItem('clientPublicKey');
+      console.log("POST /exchange_key", { username: user, client_rsa_public_key: pub });
+      const res = await exchangeKey(user, pub);
+      setEnc(res.data.encrypted_des_key);
+      setStep(1);
+    } catch (error) {
+      alert('Anahtar değişimi sırasında bir hata oluştu: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   const decryptAndContinue = () => {
-    // RSA private key'in localStorage'da duruyor
-    const crypt = new JSEncrypt();
-    crypt.setPrivateKey(localStorage.getItem('privateKey'));
-    // encrypted DES key'i decrypt et
-    const rawBytes = crypt.decrypt(encDesKey);
-    // raw bytes → Base64
-    const rawB64 = window.btoa(rawBytes);
-    localStorage.setItem('sessionKeyRaw', rawB64);
-    window.location = '/chat';
+    try {
+      // RSA private key'in localStorage'da duruyor
+      const crypt = new JSEncrypt();
+      crypt.setPrivateKey(localStorage.getItem('privateKey'));
+      // encrypted DES key'i decrypt et
+      const rawBytes = crypt.decrypt(encDesKey);
+      // raw bytes → Base64
+      const rawB64 = window.btoa(rawBytes);
+      localStorage.setItem('sessionKeyRaw', rawB64);
+      navigate('/chat');
+    } catch (error) {
+      alert('Anahtar çözme sırasında bir hata oluştu: ' + error.message);
+    }
   };
 
   return (

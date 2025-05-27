@@ -21,7 +21,7 @@ export default function Chat() {
 
   // Gelen mesajları DES çöz, göster - useCallback ile infinite loop'u önle
   const fetchMsgs = useCallback(async () => {
-    if (!sessionKey || !user || isLoading) return;
+    if (!sessionKey || !user) return;
     
     setIsLoading(true);
     try {
@@ -47,22 +47,24 @@ export default function Chat() {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionKey, user]); // isLoading'i dependency'den çıkardık
+  }, [sessionKey, user]); // isLoading koşulunu kaldırdık
 
   // İlk yükleme ve otomatik yenileme
   useEffect(() => {
-    if (sessionKey && user) {
-      fetchMsgs();
-      
-      // Her 5 saniyede bir mesajları yenile
-      const interval = setInterval(() => {
+    if (!sessionKey || !user) return;
+    
+    fetchMsgs(); // İlk yükleme
+    
+    // Sadece sayfa görünürken çalışan interval
+    const interval = setInterval(() => {
+      if (!document.hidden) { // Sayfa aktifse
         fetchMsgs();
-      }, 5000);
-      
-      // Cleanup interval on unmount
-      return () => clearInterval(interval);
-    }
-  }, [sessionKey, user, fetchMsgs]); // fetchMsgs'i dependency'e ekledik
+      }
+    }, 10000); // 10 saniyede bir (daha seyrek)
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, [sessionKey, user, fetchMsgs]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -92,8 +94,8 @@ export default function Chat() {
     try {
       await sendMessage(user, to, enc, sig);
       setMsg('');
-      // Mesaj gönderildikten hemen sonra mesajları yenile
-      fetchMsgs();
+      // Mesaj gönderildikten sonra kısa gecikmeyle yenile
+      setTimeout(() => fetchMsgs(), 500);
     } catch (err) {
       console.error("❌ send_message hatası:", err.response?.data || err);
       alert(`Mesaj gönderilemedi: ${err.response?.data?.message || err.message}`);
@@ -113,9 +115,11 @@ export default function Chat() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Manuel refresh butonu
+  // Manuel refresh butonu - rate limiting ile
   const handleRefresh = () => {
-    fetchMsgs();
+    if (!isLoading) {
+      fetchMsgs();
+    }
   };
 
   return (

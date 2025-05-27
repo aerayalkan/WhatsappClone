@@ -2,7 +2,7 @@ import { JSEncrypt } from 'jsencrypt'; // RSA anahtar çifti oluşturmak için
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { register } from '../api'; // API'den register fonksiyonunu import et
-import { Smartphone, Lock, User, Shield, CheckCircle, ArrowRight } from 'lucide-react';
+import { Smartphone, Lock, User, Shield, CheckCircle, ArrowRight, Settings } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -49,7 +49,16 @@ export default function Register() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 relative">
+      {/* Admin Button */}
+      <button
+        onClick={() => navigate('/admin-login')}
+        className="absolute top-4 left-4 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-lg transition-colors duration-200 z-10"
+        title="Admin Panel"
+      >
+        <Settings size={20} />
+      </button>
+      
       <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
